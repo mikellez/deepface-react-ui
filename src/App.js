@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import axios from 'axios';
 
 function App() {
   const facialRecognitionModel = process.env.REACT_APP_FACE_RECOGNITION_MODEL || "Facenet";
@@ -22,6 +23,9 @@ function App() {
   const [facialDb, setFacialDb] = useState({});
 
   const [isRegistered, setIsRegistered] = useState(null);
+
+  const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     const loadFacialDb = async () => {
@@ -229,40 +233,52 @@ function App() {
 
   const register = async (formData) => {
     try {
-      const response = await fetch(`${serviceEndpoint}/identity/register`, {
-        method: 'POST',
-        body: formData, // Send FormData with the image
-      });
+      const response = await axios.post(`${serviceEndpoint}/identity/register`,
+        formData, // Send FormData with the image
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          }
+        }
+      );
 
-      const data = await response.json();
       if (response.status !== 201) {
-        console.log(data.error);
+        console.log(response.message);
         return;
       }
 
+      setIsError(false);
       setIsRegistered(true);
     } catch (error) {
       console.error('Exception while registering image:', error);
+      setIsError(true);
+      setErrorMessage(error.message);
     }
   };
 
   const verify = async (formData) => {
     try {
-      const response = await fetch(`${serviceEndpoint}/identity/verify`, {
-        method: 'POST',
-        body: formData, // Send FormData with the image
-      });
+      const response = await axios.post(`${serviceEndpoint}/identity/verify`,
+        formData, // Send FormData with the image
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          }
+        }
+      );
 
-      const data = await response.json();
       if (response.status !== 201) {
-        console.log(data.error);
+        console.log(response.messsage);
         return;
       }
 
+      setIsError(false);
       setIsVerified(true);
     } catch (error) {
       console.error('Exception while verifying image:', error);
       setIsVerified(false);
+      setIsError(true);
+      setErrorMessage(error.response.data.message);
     }
   };
 
@@ -283,6 +299,7 @@ function App() {
       <header className="App-header">
         <h1>DeepFace React App</h1>
         {/* Conditional rendering based on verification status */}
+        {isError && <p style={{ color: 'red' }}>{errorMessage}</p>}
         {isRegistered === true && <p style={{ color: 'green' }}>You are registered to the system. Please verify to verify your identity.</p>}
         {isVerified === true && <p style={{ color: 'green' }}>Verified. Welcome {identity}</p>}
         {isVerified === false && <p style={{ color: 'red' }}>Not Verified</p>}
